@@ -1,7 +1,7 @@
-"""MCP tools for the screen capture-operate system.
+"""MCP tools for the universal screen capture-operate system.
 
-Exposes the capture → analyze → act pipeline to the LLM,
-enabling it to see and interact with the CATIA UI like a human.
+Exposes window management, capture, and action execution to the LLM,
+enabling it to see and interact with ANY application window like a human.
 """
 
 from __future__ import annotations
@@ -25,18 +25,117 @@ def _get_pipeline() -> CaptureOperatePipeline:
 def register(mcp: FastMCP) -> None:
     """Register all capture-operate tools."""
 
+    # ── Window Management ────────────────────────────────────────────
+
+    @mcp.tool()
+    def wm_list_windows(filter_keyword: str | None = None) -> dict[str, Any]:
+        """List all visible application windows on the system.
+        Use this to find the window you want to capture and control.
+
+        Args:
+            filter_keyword: Optional filter (e.g., 'CATIA', 'Excel', 'Chrome').
+                            Only shows windows whose title contains this string.
+        """
+        windows = _get_pipeline().window_manager.list_windows(filter_keyword)
+        return {"windows": windows, "count": len(windows)}
+
+    @mcp.tool()
+    def wm_select_by_title(title_keyword: str, alias: str = "") -> dict[str, Any]:
+        """Select a target window by searching its title.
+        The selected window becomes the target for all capture/control operations.
+
+        Args:
+            title_keyword: Text to match in window title (e.g., 'CATIA', 'Excel').
+            alias: Friendly name for this target (e.g., 'design_app').
+
+        Examples:
+            wm_select_by_title('CATIA')      → targets CATIA
+            wm_select_by_title('Excel')      → targets Microsoft Excel
+            wm_select_by_title('Chrome')     → targets Google Chrome
+            wm_select_by_title('SolidWorks') → targets SolidWorks
+        """
+        return _get_pipeline().window_manager.select_by_title(title_keyword, alias)
+
+    @mcp.tool()
+    def wm_select_by_index(index: int, alias: str = "") -> dict[str, Any]:
+        """Select a target window by its index in the window list.
+        Call wm_list_windows first to see the list.
+
+        Args:
+            index: 0-based index from wm_list_windows result.
+            alias: Friendly name for this target.
+        """
+        return _get_pipeline().window_manager.select_by_index(index, alias)
+
+    @mcp.tool()
+    def wm_select_by_hwnd(hwnd: int, alias: str = "") -> dict[str, Any]:
+        """Select a target window by its handle (for advanced use).
+
+        Args:
+            hwnd: Window handle from wm_list_windows.
+            alias: Friendly name.
+        """
+        return _get_pipeline().window_manager.select_by_hwnd(hwnd, alias)
+
+    @mcp.tool()
+    def wm_get_target() -> dict[str, Any]:
+        """Get information about the currently targeted window."""
+        return _get_pipeline().window_manager.get_target_info()
+
+    @mcp.tool()
+    def wm_open_picker() -> dict[str, Any]:
+        """Open a GUI window picker dialog.
+        Shows a searchable list of all windows. The user can select
+        which application to target. (Windows only)"""
+        return _get_pipeline().window_manager.open_picker_gui()
+
+    @mcp.tool()
+    def wm_bring_to_front() -> dict[str, Any]:
+        """Bring the target window to the foreground."""
+        return _get_pipeline().window_manager.bring_to_front()
+
+    @mcp.tool()
+    def wm_minimize() -> dict[str, Any]:
+        """Minimize the target window."""
+        return _get_pipeline().window_manager.minimize_target()
+
+    @mcp.tool()
+    def wm_restore() -> dict[str, Any]:
+        """Restore the target window from minimized state."""
+        return _get_pipeline().window_manager.restore_target()
+
     # ── Pipeline Lifecycle ───────────────────────────────────────────
 
     @mcp.tool()
     def co_init(window_title: str = "CATIA") -> dict[str, Any]:
-        """Initialize the capture-operate pipeline.
-        Finds the CATIA window, starts screen capture, and attaches overlay.
-        Must be called before using any other co_* tools.
+        """Initialize the capture-operate pipeline for any application.
+        Finds the window, starts screen capture, and attaches overlay.
 
         Args:
-            window_title: Window title to search for (default: 'CATIA').
+            window_title: Window title to search for.
+                Examples: 'CATIA', 'Excel', 'SolidWorks', 'Chrome', 'Notepad'
         """
         return _get_pipeline().initialize(window_title)
+
+    @mcp.tool()
+    def co_init_hwnd(hwnd: int) -> dict[str, Any]:
+        """Initialize the pipeline targeting a specific window handle.
+        Use after wm_select_by_* to start capture on the selected window.
+
+        Args:
+            hwnd: Window handle from wm_list_windows or wm_select_*.
+        """
+        return _get_pipeline().initialize_with_hwnd(hwnd)
+
+    @mcp.tool()
+    def co_switch(window_title: str) -> dict[str, Any]:
+        """Switch the capture target to a different application window.
+        No need to shut down and re-initialize.
+
+        Args:
+            window_title: Title of the new target window.
+        """
+        return _get_pipeline().switch_target(window_title)
 
     @mcp.tool()
     def co_shutdown() -> dict[str, str]:
@@ -57,11 +156,8 @@ def register(mcp: FastMCP) -> None:
         region_w: int | None = None,
         region_h: int | None = None,
     ) -> dict[str, Any]:
-        """Capture the CATIA screen and prepare for AI analysis.
-        Returns the screenshot data (base64 PNG) with context.
-
-        Use this to 'see' the CATIA window. The AI should analyze
-        the returned image and decide what actions to take next.
+        """Capture the target window screen for AI analysis.
+        Returns screenshot data (base64 PNG) with context.
 
         Args:
             region_x, region_y: Top-left corner of region to capture.
@@ -74,15 +170,13 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_capture_and_describe() -> dict[str, Any]:
-        """Capture the CATIA screen with full context for AI analysis.
-        Returns the frame plus instructions for the AI to analyze it.
+        """Capture the target window with full context for AI analysis.
 
         The AI should look at the image and describe:
-        1. What CATIA workbench/mode is active
-        2. What is visible in the 3D view
-        3. The state of the specification tree
-        4. Any open dialogs or menus
-        5. What action should be taken next
+        1. What application and mode is active
+        2. What is visible in the main view
+        3. Any open dialogs, menus, or panels
+        4. What action should be taken next
         """
         return _get_pipeline().capture_for_ai(add_context=True)
 
@@ -90,8 +184,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_execute(actions: list[dict[str, Any]]) -> dict[str, Any]:
-        """Execute a sequence of mouse/keyboard actions on CATIA.
-        Actions are performed with human-like timing and movement.
+        """Execute a sequence of mouse/keyboard actions on the target window.
 
         Args:
             actions: List of action dicts. Each dict has:
@@ -99,44 +192,29 @@ def register(mcp: FastMCP) -> None:
                 - params: Action parameters
                 - description: Optional label shown on overlay
 
-        Supported actions and their params:
+        Supported actions:
             click:        {x, y, button?}
             double_click: {x, y}
             right_click:  {x, y}
             drag:         {from_x, from_y, to_x, to_y}
-            middle_drag:  {from_x, from_y, to_x, to_y}  (3D view rotation)
-            scroll:       {x?, y?, delta}  (zoom in/out)
-            key_press:    {key}  (e.g., 'enter', 'escape', 'f1')
-            key_combo:    {keys: [...]}  (e.g., ['ctrl', 's'])
+            middle_drag:  {from_x, from_y, to_x, to_y}
+            scroll:       {x?, y?, delta}
+            key_press:    {key}
+            key_combo:    {keys: [...]}
             type_text:    {text}
             move:         {x, y}
             wait:         {seconds}
-
-        Example:
-            co_execute([
-                {"action": "click", "params": {"x": 100, "y": 50},
-                 "description": "Click File menu"},
-                {"action": "wait", "params": {"seconds": 0.5}},
-                {"action": "click", "params": {"x": 120, "y": 80},
-                 "description": "Click Save"},
-            ])
         """
         return _get_pipeline().execute_actions(actions)
 
     @mcp.tool()
-    def co_click(
-        x: int,
-        y: int,
-        button: str = "left",
-        description: str = "",
-    ) -> dict[str, Any]:
-        """Click at a specific position on the CATIA window.
-        Shows a visual indicator on the overlay before clicking.
+    def co_click(x: int, y: int, button: str = "left", description: str = "") -> dict[str, Any]:
+        """Click at a position on the target window.
 
         Args:
-            x, y: Click position (relative to CATIA window).
+            x, y: Click position.
             button: 'left', 'right', or 'middle'.
-            description: Label shown on the overlay.
+            description: Label shown on overlay.
         """
         return _get_pipeline().execute_actions(
             [
@@ -150,29 +228,20 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_drag(
-        from_x: int,
-        from_y: int,
-        to_x: int,
-        to_y: int,
-        description: str = "",
+        from_x: int, from_y: int, to_x: int, to_y: int, description: str = ""
     ) -> dict[str, Any]:
-        """Drag from one position to another on the CATIA window.
+        """Drag from one position to another.
 
         Args:
             from_x, from_y: Start position.
             to_x, to_y: End position.
-            description: Label shown on the overlay.
+            description: Label shown on overlay.
         """
         return _get_pipeline().execute_actions(
             [
                 {
                     "action": "drag",
-                    "params": {
-                        "from_x": from_x,
-                        "from_y": from_y,
-                        "to_x": to_x,
-                        "to_y": to_y,
-                    },
+                    "params": {"from_x": from_x, "from_y": from_y, "to_x": to_x, "to_y": to_y},
                     "description": description,
                 }
             ]
@@ -180,16 +249,13 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_rotate_view(
-        dx: int,
-        dy: int,
-        center_x: int = 960,
-        center_y: int = 540,
+        dx: int, dy: int, center_x: int = 960, center_y: int = 540
     ) -> dict[str, Any]:
-        """Rotate the 3D view in CATIA using middle-mouse-button drag.
+        """Rotate a 3D view using middle-mouse drag (CAD software).
 
         Args:
             dx, dy: Rotation amount in pixels.
-            center_x, center_y: Center point to rotate around.
+            center_x, center_y: Center point.
         """
         return _get_pipeline().execute_actions(
             [
@@ -208,11 +274,11 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_zoom(delta: int, x: int = 960, y: int = 540) -> dict[str, Any]:
-        """Zoom in or out in the CATIA 3D view.
+        """Zoom in/out on the target window.
 
         Args:
             delta: Positive = zoom in, negative = zoom out.
-            x, y: Zoom center position.
+            x, y: Zoom center.
         """
         return _get_pipeline().execute_actions(
             [
@@ -226,7 +292,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_type(text: str) -> dict[str, Any]:
-        """Type text into the currently focused input in CATIA.
+        """Type text into the currently focused input.
 
         Args:
             text: Text to type.
@@ -243,18 +309,10 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_shortcut(*keys: str) -> dict[str, Any]:
-        """Press a keyboard shortcut in CATIA.
+        """Press a keyboard shortcut.
 
         Args:
             keys: Keys to press together (e.g., 'ctrl', 's').
-
-        Common CATIA shortcuts:
-            Ctrl+S — Save
-            Ctrl+Z — Undo
-            Ctrl+Y — Redo
-            Ctrl+Shift+F — Fit All In
-            Escape — Cancel current operation
-            F3 — Toggle specification tree
         """
         return _get_pipeline().execute_actions(
             [
@@ -268,8 +326,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_verify() -> dict[str, Any]:
-        """Capture a new screenshot to verify the result of the last action.
-        Use after executing actions to check if they succeeded."""
+        """Capture a new screenshot to verify the last action's result."""
         return _get_pipeline().verify_result()
 
     # ── Overlay ──────────────────────────────────────────────────────
@@ -283,14 +340,13 @@ def register(mcp: FastMCP) -> None:
         label: str = "",
         color: str = "#00FF00",
     ) -> dict[str, Any]:
-        """Draw a highlighted rectangle on the CATIA overlay.
-        Use to mark regions of interest for the user.
+        """Draw a highlighted rectangle on the overlay.
 
         Args:
-            x, y: Top-left corner position.
-            width, height: Rectangle size.
-            label: Text label to show.
-            color: Color in hex (e.g., '#00FF00').
+            x, y: Top-left corner.
+            width, height: Size.
+            label: Text label.
+            color: Hex color.
         """
         return _get_pipeline().overlay.add_rect(x, y, width, height, color, label)
 
@@ -315,7 +371,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def co_action_log(last_n: int = 10) -> dict[str, Any]:
-        """Get the log of recent input actions (clicks, keystrokes, etc.).
+        """Get the log of recent input actions.
 
         Args:
             last_n: Number of recent actions to return.

@@ -1,6 +1,7 @@
-"""Screen capture engine — multi-backend high-performance CATIA window capture.
+"""Screen capture engine — multi-backend high-performance window capture.
 
-Inspired by better-genshin-impact's GameCapture system.
+Universal capture engine that works with ANY application window,
+not just CATIA. Inspired by better-genshin-impact's GameCapture system.
 Supports multiple capture backends with automatic fallback:
   1. DXcam  — Desktop Duplication API, 240Hz+ (fastest)
   2. BitBlt — GDI capture via win32gui, captures specific windows
@@ -69,11 +70,13 @@ class WindowInfo:
 
 
 class CaptureEngine:
-    """Multi-backend screen capture engine for CATIA windows.
+    """Multi-backend screen capture engine for ANY application window.
 
     Usage:
         engine = CaptureEngine()
         engine.start("CATIA")          # find and lock to CATIA window
+        engine.start("Excel")          # ...or any other app
+        engine.start_with_hwnd(0x1234) # ...or by window handle
         frame = engine.capture()       # capture current frame
         region = engine.capture_region(100, 100, 400, 300)
         engine.stop()
@@ -204,11 +207,28 @@ class CaptureEngine:
     # ── Start / Stop ─────────────────────────────────────────────────
 
     def start(self, title_keyword: str = "CATIA") -> dict[str, Any]:
-        """Find the target window and start capture session."""
+        """Find the target window by title and start capture session."""
         win = self.find_window(title_keyword)
         if win is None:
             return {"status": "error", "error": f"Window '{title_keyword}' not found"}
+        return self._start_with_window(win)
 
+    def start_with_hwnd(
+        self, hwnd: int, title: str = "", rect: tuple[int, int, int, int] = (0, 0, 1920, 1080)
+    ) -> dict[str, Any]:
+        """Start capture on a specific window handle (from WindowManager)."""
+        win = WindowInfo(
+            hwnd=hwnd,
+            title=title,
+            rect=rect,
+            width=rect[2] - rect[0],
+            height=rect[3] - rect[1],
+            is_visible=True,
+        )
+        return self._start_with_window(win)
+
+    def _start_with_window(self, win: WindowInfo) -> dict[str, Any]:
+        """Internal: start capture session for the given window."""
         self._target_hwnd = win.hwnd
         self._target_title = win.title
         self._target_rect = win.rect

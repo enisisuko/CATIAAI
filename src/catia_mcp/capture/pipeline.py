@@ -1,11 +1,13 @@
 """Capture → AI Analysis → Action Execution pipeline.
 
-This is the core loop that connects screen capture to AI decision-making:
-1. Capture CATIA screen
-2. Send screenshot to cloud AI with context
-3. AI analyzes and returns action instructions
-4. Execute actions (mouse/keyboard)
-5. Repeat
+Universal pipeline that connects screen capture to AI decision-making
+for ANY application, not just CATIA:
+1. Select target window (any app)
+2. Capture screen
+3. Send screenshot to cloud AI with context
+4. AI analyzes and returns action instructions
+5. Execute actions (mouse/keyboard)
+6. Repeat
 
 Inspired by better-genshin-impact's task loop architecture.
 """
@@ -21,6 +23,7 @@ from typing import Any
 from catia_mcp.capture.engine import CaptureEngine, CaptureFrame
 from catia_mcp.capture.input_sim import InputSimulator
 from catia_mcp.capture.overlay import OverlayWindow
+from catia_mcp.capture.window_manager import WindowManager
 
 logger = logging.getLogger(__name__)
 
@@ -57,16 +60,18 @@ class AnalysisResult:
 
 
 class CaptureOperatePipeline:
-    """The main capture-operate pipeline that drives AI-powered CATIA interaction.
+    """Universal capture-operate pipeline for AI-powered interaction with ANY app.
 
     Workflow:
-    1. capture_and_prepare() — Take screenshot, encode for AI
-    2. (External) AI analyzes the screenshot and returns actions
-    3. execute_actions() — Execute the AI's instructions
-    4. verify() — Capture again to verify the result
+    1. select target window (CATIA, Excel, browser, any app)
+    2. capture_and_prepare() — Take screenshot, encode for AI
+    3. (External) AI analyzes the screenshot and returns actions
+    4. execute_actions() — Execute the AI's instructions
+    5. verify() — Capture again to verify the result
     """
 
     def __init__(self) -> None:
+        self.window_manager = WindowManager()
         self.engine = CaptureEngine()
         self.input = InputSimulator()
         self.overlay = OverlayWindow()
@@ -80,16 +85,32 @@ class CaptureOperatePipeline:
         return self._state.value
 
     def initialize(self, window_title: str = "CATIA") -> dict[str, Any]:
-        """Initialize the pipeline: find CATIA, start capture, attach overlay."""
+        """Initialize the pipeline by finding a window by title keyword."""
         result = self.engine.start(window_title)
         if result.get("status") != "started":
             self._state = PipelineState.ERROR
             return result
+        return self._attach_to_engine_target()
 
+    def initialize_with_hwnd(self, hwnd: int, title: str = "") -> dict[str, Any]:
+        """Initialize the pipeline targeting a specific window handle."""
+        target = self.window_manager.select_by_hwnd(hwnd)
+        if target.get("status") != "selected":
+            self._state = PipelineState.ERROR
+            return target
+
+        win_info = target["window"]
+        rect = tuple(win_info["rect"])
+        result = self.engine.start_with_hwnd(hwnd, win_info["title"], rect)
+        if result.get("status") != "started":
+            self._state = PipelineState.ERROR
+            return result
+        return self._attach_to_engine_target()
+
+    def _attach_to_engine_target(self) -> dict[str, Any]:
         win = self.engine.target_window
         self.input.set_target(win["hwnd"])
         self.overlay.attach(win["hwnd"], win["rect"])
-
         self._state = PipelineState.IDLE
         return {
             "status": "initialized",
@@ -97,6 +118,12 @@ class CaptureOperatePipeline:
             "window": win,
             "overlay": self.overlay.visible,
         }
+
+    def switch_target(self, window_title: str) -> dict[str, Any]:
+        """Switch to a different application window without full re-init."""
+        self.overlay.detach()
+        self.engine.stop()
+        return self.initialize(window_title)
 
     def shutdown(self) -> dict[str, str]:
         """Shut down the pipeline."""

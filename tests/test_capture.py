@@ -217,3 +217,18 @@ class TestPipeline:
         pipeline.initialize("CATIA")
         result = pipeline.shutdown()
         assert result["status"] == "shutdown"
+
+    def test_initialize_non_catia(self) -> None:
+        pipeline = CaptureOperatePipeline()
+        result = pipeline.initialize("Excel")
+        assert result["status"] == "initialized"
+
+    def test_switch_target(self) -> None:
+        pipeline = CaptureOperatePipeline()
+        pipeline.initialize("CATIA")
+        result = pipeline.switch_target("Excel")
+        assert result["status"] == "initialized"
+
+    def test_has_window_manager(self) -> None:
+        pipeline = CaptureOperatePipeline()
+        assert pipeline.window_manager is not None
