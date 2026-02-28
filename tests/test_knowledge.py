@@ -99,9 +99,10 @@ class TestKnowledgeContent:
         km = KnowledgeManager()
         section = km.get_section("part_design", "sketch_based_features")
         content = section["content"]
-        assert "Pad" in content
-        assert "Pocket" in content
-        assert "Shaft" in content
+        content_str = str(content)
+        assert "Pad" in content_str
+        assert "Pocket" in content_str
+        assert "Shaft" in content_str
 
     def test_sketcher_has_constraints(self) -> None:
         km = KnowledgeManager()
@@ -111,10 +112,10 @@ class TestKnowledgeContent:
     def test_assembly_has_constraint_types(self) -> None:
         km = KnowledgeManager()
         section = km.get_section("assembly", "constraints")
-        content = section["content"]
-        assert "Coincidence" in content
-        assert "Contact" in content
-        assert "Offset" in content
+        content_str = str(section["content"])
+        assert "Coincidence" in content_str
+        assert "Contact" in content_str
+        assert "Offset" in content_str
 
     def test_scripting_has_code_templates(self) -> None:
         km = KnowledgeManager()
@@ -136,6 +137,6 @@ class TestKnowledgeContent:
     def test_surface_design_has_methods(self) -> None:
         km = KnowledgeManager()
         section = km.get_section("surface_design", "creation_methods")
-        content = section["content"]
-        assert "Sweep" in content
-        assert "Loft" in content
+        content_str = str(section["content"])
+        assert "Sweep" in content_str
+        assert "Loft" in content_str
