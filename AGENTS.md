@@ -2,13 +2,19 @@
 
 ## Cursor Cloud specific instructions
 
-This is a Python MCP server for CATIA CAD automation. Key development notes:
+This is a Python MCP server (v0.2) for CATIA V5/V6 CAD automation, integrating multiple open-source projects.
 
-- **Run tests**: `pytest tests/ -v` (85 tests, all use mock CATIA — no Windows/CATIA needed)
+### Quick Reference
+- **Run tests**: `pytest tests/ -v` (122 tests, all use mock — no Windows/CATIA needed)
 - **Lint**: `ruff check src/ tests/` and `ruff format src/ tests/`
-- **Run server**: `python main.py` (starts MCP server on stdio transport)
+- **Run server**: `python main.py` (starts MCP server on stdio)
 - **Install**: `pip install -e ".[dev]"` from repo root
-- The MCP server auto-detects platform — uses COM on Windows, mock mode elsewhere (Linux/macOS). All tests pass on Linux.
-- `pytest-asyncio` is required but tests are sync; the async mode is set to `auto` in `pyproject.toml`.
-- CATIA COM operations (`pywin32`) only work on Windows with CATIA running. The `[windows]` optional deps are not needed for development/testing on Linux.
-- The `PATH` must include `~/.local/bin` for `pytest`, `ruff`, and `catia-mcp` commands to work after `pip install --user`.
+
+### Architecture Notes
+- Connection priority on Windows: pycatia → win32com → mock. On Linux: always mock.
+- `pycatia_backend.py` contains the real CATIA API calls mapped to the pycatia library API. Only loaded on Windows.
+- `smart_interaction.py` wraps pywinauto for intelligent UI automation. Only loaded on Windows.
+- Agent tools (`plan_catia_task`, `analyze_current_state`, etc.) work in both mock and real mode.
+- MCP Resources and Prompts are always available regardless of platform.
+- `PATH` must include `~/.local/bin` for pip-installed commands to work.
+- `pytest-asyncio` mode is set to `auto` in `pyproject.toml`.
