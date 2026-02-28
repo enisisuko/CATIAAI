@@ -2,10 +2,13 @@
 
 ## Cursor Cloud specific instructions
 
-This repository (CATIAAI) is currently an empty project scaffold with only a `README.md`. There is no application code, build system, package manager configuration, or services to run yet.
+This is a Python MCP server for CATIA CAD automation. Key development notes:
 
-- **No dependencies to install** — no `package.json`, `requirements.txt`, `go.mod`, or similar files exist.
-- **No lint, test, or build commands** — no tooling is configured.
-- **No services to start** — no `docker-compose.yml`, `Makefile`, or dev server scripts exist.
-
-When application code is added, this section should be updated with setup/run/test instructions.
+- **Run tests**: `pytest tests/ -v` (85 tests, all use mock CATIA — no Windows/CATIA needed)
+- **Lint**: `ruff check src/ tests/` and `ruff format src/ tests/`
+- **Run server**: `python main.py` (starts MCP server on stdio transport)
+- **Install**: `pip install -e ".[dev]"` from repo root
+- The MCP server auto-detects platform — uses COM on Windows, mock mode elsewhere (Linux/macOS). All tests pass on Linux.
+- `pytest-asyncio` is required but tests are sync; the async mode is set to `auto` in `pyproject.toml`.
+- CATIA COM operations (`pywin32`) only work on Windows with CATIA running. The `[windows]` optional deps are not needed for development/testing on Linux.
+- The `PATH` must include `~/.local/bin` for `pytest`, `ruff`, and `catia-mcp` commands to work after `pip install --user`.
