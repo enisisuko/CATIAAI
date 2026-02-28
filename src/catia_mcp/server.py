@@ -24,6 +24,7 @@ from catia_mcp.tools import (
     agent_tools,
     assembly_tools,
     drawing_tools,
+    knowledge_tools,
     measure_tools,
     part_tools,
     sketch_tools,
@@ -64,6 +65,9 @@ def create_server() -> FastMCP:
 
     # Agent workflow engine
     agent_tools.register(mcp)
+
+    # Knowledge base
+    knowledge_tools.register(mcp)
 
     # MCP Resources & Prompts
     resources.register(mcp)
