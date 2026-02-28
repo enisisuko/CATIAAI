@@ -92,13 +92,9 @@ class KnowledgeManager:
                 section_content = section.get("content", "")
 
                 if isinstance(section_content, list):
-                    section_text = " ".join(
-                        str(item) for item in section_content
-                    )
+                    section_text = " ".join(str(item) for item in section_content)
                 elif isinstance(section_content, dict):
-                    section_text = " ".join(
-                        f"{k} {v}" for k, v in section_content.items()
-                    )
+                    section_text = " ".join(f"{k} {v}" for k, v in section_content.items())
                 else:
                     section_text = str(section_content)
 
@@ -108,14 +104,16 @@ class KnowledgeManager:
                         section_score += 3
 
                 if section_score > 0:
-                    results.append({
-                        "topic_id": topic["id"],
-                        "topic_title": topic["title"],
-                        "section_key": key,
-                        "section_title": section_title,
-                        "score": section_score,
-                        "preview": section_text[:200] if section_text else "",
-                    })
+                    results.append(
+                        {
+                            "topic_id": topic["id"],
+                            "topic_title": topic["title"],
+                            "section_key": key,
+                            "section_title": section_title,
+                            "score": section_score,
+                            "preview": section_text[:200] if section_text else "",
+                        }
+                    )
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:max_results]

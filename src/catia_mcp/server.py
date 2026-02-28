@@ -23,6 +23,7 @@ from catia_mcp import prompts, resources
 from catia_mcp.tools import (
     agent_tools,
     assembly_tools,
+    capture_tools,
     drawing_tools,
     knowledge_tools,
     measure_tools,
@@ -62,6 +63,9 @@ def create_server() -> FastMCP:
     # Vision & UI automation
     vision_tools.register(mcp)
     smart_ui_tools.register(mcp)
+
+    # Capture-Operate pipeline (screen capture + input simulation)
+    capture_tools.register(mcp)
 
     # Agent workflow engine
     agent_tools.register(mcp)

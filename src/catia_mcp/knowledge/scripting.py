@@ -39,9 +39,9 @@ KNOWLEDGE: dict = {
                 "CATIA 通过 COM (Component Object Model) 暴露自动化接口。\n\n"
                 "【连接 CATIA】\n"
                 "VBScript:\n"
-                "  Set CATIA = GetObject(, \"CATIA.Application\")\n"
+                '  Set CATIA = GetObject(, "CATIA.Application")\n'
                 "  ' 或创建新实例\n"
-                "  Set CATIA = CreateObject(\"CATIA.Application\")\n\n"
+                '  Set CATIA = CreateObject("CATIA.Application")\n\n'
                 "Python (pycatia):\n"
                 "  from pycatia import catia\n"
                 "  caa = catia()\n\n"
@@ -64,7 +64,7 @@ KNOWLEDGE: dict = {
                     "Dim documents As Documents\n"
                     "Set documents = CATIA.Documents\n"
                     "Dim partDoc As PartDocument\n"
-                    "Set partDoc = documents.Add(\"Part\")\n"
+                    'Set partDoc = documents.Add("Part")\n'
                     "Dim part As Part\n"
                     "Set part = partDoc.Part"
                 ),
@@ -107,8 +107,8 @@ KNOWLEDGE: dict = {
                     "Set params = part.Parameters\n"
                     "' 读取\n"
                     "Dim length As Parameter\n"
-                    "Set length = params.Item(\"PartBody\\\\Pad.1\\\\FirstLimit\\\\Length\")\n"
-                    "MsgBox \"Length = \" & length.Value\n"
+                    'Set length = params.Item("PartBody\\\\Pad.1\\\\FirstLimit\\\\Length")\n'
+                    'MsgBox "Length = " & length.Value\n'
                     "' 修改\n"
                     "length.Value = 100\n"
                     "part.Update"
@@ -116,15 +116,15 @@ KNOWLEDGE: dict = {
                 "导出 STEP": (
                     "Dim partDoc As PartDocument\n"
                     "Set partDoc = CATIA.ActiveDocument\n"
-                    "partDoc.ExportData \"C:\\\\output\\\\part.stp\", \"stp\""
+                    'partDoc.ExportData "C:\\\\output\\\\part.stp", "stp"'
                 ),
                 "批量处理文件": (
                     "Dim fso As Object\n"
-                    "Set fso = CreateObject(\"Scripting.FileSystemObject\")\n"
+                    'Set fso = CreateObject("Scripting.FileSystemObject")\n'
                     "Dim folder As Object\n"
-                    "Set folder = fso.GetFolder(\"C:\\\\parts\")\n"
+                    'Set folder = fso.GetFolder("C:\\\\parts")\n'
                     "For Each file In folder.Files\n"
-                    "    If Right(file.Name, 8) = \".CATPart\" Then\n"
+                    '    If Right(file.Name, 8) = ".CATPart" Then\n'
                     "        CATIA.Documents.Open file.Path\n"
                     "        ' 处理...\n"
                     "        CATIA.ActiveDocument.Close\n"

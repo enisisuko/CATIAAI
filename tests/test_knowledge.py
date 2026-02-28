@@ -49,8 +49,7 @@ class TestKnowledgeManager:
         results = km.search("fillet")
         assert len(results) > 0
         assert any(
-            "fillet" in r["section_title"].lower()
-            or "fillet" in r["preview"].lower()
+            "fillet" in r["section_title"].lower() or "fillet" in r["preview"].lower()
             for r in results
         )
 

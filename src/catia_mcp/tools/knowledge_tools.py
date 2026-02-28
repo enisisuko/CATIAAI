@@ -43,8 +43,7 @@ def register(mcp: FastMCP) -> None:
                 "available": km.get_topic_ids(),
             }
         sections_summary = {
-            key: sec.get("title", key)
-            for key, sec in topic.get("sections", {}).items()
+            key: sec.get("title", key) for key, sec in topic.get("sections", {}).items()
         }
         return {
             "id": topic["id"],
@@ -121,11 +120,13 @@ def register(mcp: FastMCP) -> None:
         for r in results:
             section = km.get_section(r["topic_id"], r["section_key"])
             if section:
-                sections.append({
-                    "topic": r["topic_title"],
-                    "section": section.get("title", ""),
-                    "content": section.get("content", ""),
-                })
+                sections.append(
+                    {
+                        "topic": r["topic_title"],
+                        "section": section.get("title", ""),
+                        "content": section.get("content", ""),
+                    }
+                )
 
         return {
             "operation": operation,

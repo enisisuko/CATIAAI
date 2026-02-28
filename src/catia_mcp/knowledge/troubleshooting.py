@@ -23,25 +23,16 @@ KNOWLEDGE: dict = {
                     "解决：双击草图进入编辑 → 检查绿色/红色状态 → 修复"
                 ),
                 "Impossible Operation (不可能的操作)": (
-                    "原因：几何条件不满足（如孔深超过实体厚度）\n"
-                    "解决：检查参数值是否合理"
+                    "原因：几何条件不满足（如孔深超过实体厚度）\n解决：检查参数值是否合理"
                 ),
                 "Boolean Failure (布尔运算失败)": (
-                    "原因：两个实体没有足够的重叠\n"
-                    "解决：确保布尔体与目标体有交集"
+                    "原因：两个实体没有足够的重叠\n解决：确保布尔体与目标体有交集"
                 ),
                 "Fillet/Chamfer Failure": (
-                    "原因：圆角/倒角半径太大，导致自交叉\n"
-                    "解决：减小半径，或先做大面的圆角"
+                    "原因：圆角/倒角半径太大，导致自交叉\n解决：减小半径，或先做大面的圆角"
                 ),
-                "Shell Failure": (
-                    "原因：壁厚太大或几何太复杂\n"
-                    "解决：减小壁厚，简化内部结构"
-                ),
-                "Pattern Failure": (
-                    "原因：阵列实例落在实体外部\n"
-                    "解决：检查方向和间距参数"
-                ),
+                "Shell Failure": ("原因：壁厚太大或几何太复杂\n解决：减小壁厚，简化内部结构"),
+                "Pattern Failure": ("原因：阵列实例落在实体外部\n解决：检查方向和间距参数"),
             },
         },
         "performance": {
@@ -70,16 +61,11 @@ KNOWLEDGE: dict = {
                     "4. 使用 CATDUA (CATIA Data Utility for Administration)"
                 ),
                 "Missing Links": (
-                    "装配中零件链接断开。\n"
-                    "解决：Edit → Links → 选择 Broken → 指向正确文件"
+                    "装配中零件链接断开。\n解决：Edit → Links → 选择 Broken → 指向正确文件"
                 ),
-                "Cannot Save": (
-                    "原因：文件被锁、磁盘满、权限不足\n"
-                    "解决：另存为新文件名 (Save As)"
-                ),
+                "Cannot Save": ("原因：文件被锁、磁盘满、权限不足\n解决：另存为新文件名 (Save As)"),
                 "Version Compatibility": (
-                    "高版本文件无法在低版本打开。\n"
-                    "解决：用高版本导出 STEP/IGES/V4 格式"
+                    "高版本文件无法在低版本打开。\n解决：用高版本导出 STEP/IGES/V4 格式"
                 ),
             },
         },
@@ -102,8 +88,7 @@ KNOWLEDGE: dict = {
                     "检查 CATIA 是否以管理员权限运行。"
                 ),
                 "Index out of range": (
-                    "COM 集合索引从 1 开始，不是 0。\n"
-                    "检查 .Count 属性确认集合大小。"
+                    "COM 集合索引从 1 开始，不是 0。\n检查 .Count 属性确认集合大小。"
                 ),
                 "Reference is Nothing": (
                     "创建引用失败。\n"
@@ -111,12 +96,10 @@ KNOWLEDGE: dict = {
                     "某些对象需要先 Update 才能创建引用。"
                 ),
                 "Sketch edit mode conflict": (
-                    "不能同时编辑两个草图。\n"
-                    "确保 CloseEdition() 被调用。"
+                    "不能同时编辑两个草图。\n确保 CloseEdition() 被调用。"
                 ),
                 "Part.Update fails": (
-                    "模型中有错误的特征。\n"
-                    "逐个检查特征，或用 Deactivate 跳过错误特征。"
+                    "模型中有错误的特征。\n逐个检查特征，或用 Deactivate 跳过错误特征。"
                 ),
             },
         },
