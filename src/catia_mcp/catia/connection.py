@@ -114,6 +114,8 @@ class CATIAConnection:
 
     def __init__(self) -> None:
         self._com_app: Any = None
+        self._pycatia: Any = None
+        self._backend: str = "mock"
         self._is_mock = False
         self._connected = False
         self._documents: list[CATIADocument] = []
@@ -141,21 +143,44 @@ class CATIAConnection:
         return self._active_sketch
 
     def connect(self) -> dict[str, Any]:
-        """Connect to CATIA instance. Falls back to mock on non-Windows or if CATIA not running."""
+        """Connect to CATIA instance.
+
+        Connection priority:
+        1. pycatia library (recommended, best API coverage)
+        2. Direct win32com (fallback)
+        3. Mock mode (non-Windows or CATIA not available)
+        """
         if self._connected:
             return {"status": "already_connected", "mock": self._is_mock}
 
         if platform.system() == "Windows":
+            # Try pycatia first (evereux/pycatia — best CATIA Python automation)
+            try:
+                from catia_mcp.catia.pycatia_backend import PyCATIABackend
+
+                self._pycatia = PyCATIABackend()
+                result = self._pycatia.connect()
+                self._connected = True
+                self._is_mock = False
+                self._backend = "pycatia"
+                logger.info("Connected to CATIA via pycatia library")
+                return result
+            except Exception as e:
+                logger.info("pycatia not available: %s. Trying direct COM.", e)
+
+            # Fallback to direct COM
             try:
                 import win32com.client
 
                 self._com_app = win32com.client.Dispatch("CATIA.Application")
                 self._connected = True
                 self._is_mock = False
-                logger.info("Connected to CATIA via COM")
+                self._backend = "win32com"
+                logger.info("Connected to CATIA via direct COM")
                 return {
                     "status": "connected",
                     "mock": False,
+                    "backend": "win32com",
                     "version": str(self._com_app.SystemConfiguration.Version),
                 }
             except Exception as e:
@@ -163,6 +188,7 @@ class CATIAConnection:
 
         self._connected = True
         self._is_mock = True
+        self._backend = "mock"
         logger.info("Using mock CATIA (non-Windows or CATIA not available)")
         return {"status": "connected", "mock": True, "version": "V5-6R2024 (Mock)"}
 

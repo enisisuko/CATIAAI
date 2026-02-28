@@ -1,19 +1,16 @@
 """CATIA MCP Server - Main entry point.
 
 This MCP server exposes CATIA V5/V6 automation capabilities to LLMs via the
-Model Context Protocol. It supports:
+Model Context Protocol. Integrates:
 
-- Part Design: Pad, Pocket, Shaft, Groove, Fillet, Chamfer, Shell, Hole, Pattern, Mirror
-- Sketcher: Lines, Circles, Rectangles, Arcs, Splines, Constraints, Dimensions
-- Assembly Design: Component insertion, Constraints (Coincidence, Contact, Offset, Angle, Fix)
-- Drawing/Drafting: Views, Dimensions, Annotations
-- Generative Shape Design: Extrude, Revolve, Sweep, Fill, Loft, Offset, Trim, Split, Join
-- Measurement: Distance, Angle, Area, Volume, Inertia
-- Vision/UI Automation: Screenshots, Click, Drag, Type, Keyboard shortcuts
-- System: Document management, Feature tree, Parameters, VBA macros, Undo/Redo
+- pycatia (evereux/pycatia) for CATIA COM automation
+- pywinauto for intelligent UI automation
+- FastMCP for MCP protocol handling
+- Agent workflow engine for CLINE-style thinking chains
 
-On Windows with CATIA running, operations are performed via COM automation.
-On other platforms or when CATIA is unavailable, a mock mode is used for development/testing.
+Supports 90+ tools across 10 modules:
+- System, Sketcher, Part Design, Assembly, Drawing, Surface Design,
+  Measurement, Vision/UI, Smart UI (pywinauto), Agent Workflow
 """
 
 from __future__ import annotations
@@ -22,12 +19,15 @@ import logging
 
 from mcp.server.fastmcp import FastMCP
 
+from catia_mcp import prompts, resources
 from catia_mcp.tools import (
+    agent_tools,
     assembly_tools,
     drawing_tools,
     measure_tools,
     part_tools,
     sketch_tools,
+    smart_ui_tools,
     surface_tools,
     system_tools,
     vision_tools,
@@ -37,16 +37,19 @@ logger = logging.getLogger(__name__)
 
 
 def create_server() -> FastMCP:
-    """Create and configure the CATIA MCP server with all tools registered."""
+    """Create and configure the CATIA MCP server with all modules registered."""
     mcp = FastMCP(
         "CATIA MCP Server",
         instructions=(
             "Automate CATIA V5/V6 CAD operations via cloud LLM. "
             "Supports Part Design, Sketcher, Assembly, Drawing, Surface Design, "
-            "Measurement, and Vision-based UI automation."
+            "Measurement, Vision/UI automation, and Agent-guided workflows. "
+            "Uses pycatia library for CATIA COM and pywinauto for smart UI interaction. "
+            "Call connect_catia first, then use plan_catia_task for complex designs."
         ),
     )
 
+    # Core tools
     system_tools.register(mcp)
     sketch_tools.register(mcp)
     part_tools.register(mcp)
@@ -54,9 +57,19 @@ def create_server() -> FastMCP:
     drawing_tools.register(mcp)
     surface_tools.register(mcp)
     measure_tools.register(mcp)
-    vision_tools.register(mcp)
 
-    logger.info("CATIA MCP Server initialized with all tool modules")
+    # Vision & UI automation
+    vision_tools.register(mcp)
+    smart_ui_tools.register(mcp)
+
+    # Agent workflow engine
+    agent_tools.register(mcp)
+
+    # MCP Resources & Prompts
+    resources.register(mcp)
+    prompts.register(mcp)
+
+    logger.info("CATIA MCP Server initialized with all modules")
     return mcp
 
 
